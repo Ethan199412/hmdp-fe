@@ -6,13 +6,26 @@ const path = require('path');
 const app = express();
 const port = 8082;
 
-const apiProxy = createProxyMiddleware('/api', {
-    target: 'http://localhost:8081',  // 目标服务器的地址
-    changeOrigin: true,  // 设置为 true，以便正确处理目标服务器的跨域请求
-    pathRewrite: {
-      '^/api': '',  // 重写路径，去掉 '/api' 前缀
-    },
-  });
+const targets = [
+    'http://localhost:8081',
+    'http://localhost:8083',
+];
+
+let currentTargetIndex = 0;
+
+const apiProxy = (req, res, next) => {
+    const target = targets[currentTargetIndex];
+    currentTargetIndex = (currentTargetIndex + 1) % targets.length;
+
+    console.log('[p0.1] target',target)
+    return createProxyMiddleware({
+        target,
+        changeOrigin: true,
+        pathRewrite: {
+            '^/api': '',
+        },
+    })(req, res, next);
+};
 
 app.use('/api', apiProxy);
 
@@ -23,5 +36,5 @@ app.use('/', express.static(path.join(__dirname, 'html/hmdp')));
 
 // 启动服务器
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+    console.log(`Server is running on port ${port}`);
 });
